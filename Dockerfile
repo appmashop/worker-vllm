@@ -5,9 +5,12 @@ RUN apt-get update -y \
 
 RUN ldconfig /usr/local/cuda-12.9/compat/
 
-# Install vLLM with FlashInfer - use CUDA 12.8 PyTorch wheels (compatible with vLLM 0.15.1)
+# Install vLLM with FlashInfer - vLLM 0.18.x supports Qwen3.5/3.6 architecture
+# (Qwen3_5ForConditionalGeneration), stays on CUDA 12.9 wheels (Runpod-compatible drivers)
 RUN python3 -m pip install --upgrade pip && \
-    python3 -m pip install "vllm[flashinfer]==0.16.0" --extra-index-url https://download.pytorch.org/whl/cu129
+    python3 -m pip install "vllm[flashinfer]==0.18.0" --extra-index-url https://download.pytorch.org/whl/cu129 && \
+    apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/* && \
+    pip install git+https://github.com/huggingface/transformers.git
 
 
 
@@ -44,12 +47,6 @@ ENV MODEL_NAME=$MODEL_NAME \
     RAYON_NUM_THREADS=4
 
 ENV PYTHONPATH="/:/vllm-workspace"
-
-RUN if [ "${VLLM_NIGHTLY}" = "true" ]; then \
-    pip install -U vllm --pre --index-url https://pypi.org/simple --extra-index-url https://wheels.vllm.ai/nightly && \
-    apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/* && \
-    pip install git+https://github.com/huggingface/transformers.git; \
-fi
 
 COPY src /src
 RUN --mount=type=secret,id=HF_TOKEN,required=false \

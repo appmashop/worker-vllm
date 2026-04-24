@@ -37,9 +37,7 @@ jobs:
           push: true
           tags: |
             ghcr.io/${{ steps.repo_owner.outputs.owner }}/mashop-vllm:latest
-            ghcr.io/${{ steps.repo_owner.outputs.owner }}/mashop-vllm:nightly-${{ github.sha }}
-          build-args: |
-            VLLM_NIGHTLY=true
+            ghcr.io/${{ steps.repo_owner.outputs.owner }}/mashop-vllm:vllm-0.18-${{ github.sha }}
           platforms: linux/amd64
           cache-from: type=gha
           cache-to: type=gha,mode=max
