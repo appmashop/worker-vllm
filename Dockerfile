@@ -5,10 +5,10 @@ RUN apt-get update -y \
 
 RUN ldconfig /usr/local/cuda-12.9/compat/
 
-# Install vLLM with FlashInfer - vLLM 0.18.x supports Qwen3.5/3.6 architecture
-# (Qwen3_5ForConditionalGeneration), stays on CUDA 12.9 wheels (Runpod-compatible drivers)
+# Install vLLM with FlashInfer - vLLM 0.19.0 supports Qwen3.5/3.6 architecture
+# (Qwen3_5ForConditionalGeneration), CUDA 12.9 wheels
 RUN python3 -m pip install --upgrade pip && \
-    python3 -m pip install "vllm[flashinfer]==0.18.0" --extra-index-url https://download.pytorch.org/whl/cu129 && \
+    python3 -m pip install "vllm[flashinfer]==0.19.0" --extra-index-url https://download.pytorch.org/whl/cu129 && \
     apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/* && \
     pip install git+https://github.com/huggingface/transformers.git
 
@@ -28,7 +28,8 @@ ARG MODEL_REVISION=""
 ARG TOKENIZER_REVISION=""
 ARG VLLM_NIGHTLY="false"
 
-ENV MODEL_NAME=$MODEL_NAME \
+ENV PYTHONUNBUFFERED=1 \
+    MODEL_NAME=$MODEL_NAME \
     MODEL_REVISION=$MODEL_REVISION \
     TOKENIZER_NAME=$TOKENIZER_NAME \
     TOKENIZER_REVISION=$TOKENIZER_REVISION \
