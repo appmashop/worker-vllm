@@ -15,6 +15,7 @@ from vllm.entrypoints.openai.completion.serving import OpenAIServingCompletion
 from vllm.entrypoints.openai.engine.protocol import ErrorResponse
 from vllm.entrypoints.openai.models.protocol import BaseModelPath, LoRAModulePath
 from vllm.entrypoints.openai.models.serving import OpenAIServingModels
+from vllm.entrypoints.serve.render.serving import OpenAIServingRender
 
 from constants import DEFAULT_BATCH_SIZE, DEFAULT_BATCH_SIZE_GROWTH_FACTOR, DEFAULT_MAX_CONCURRENCY, DEFAULT_MIN_BATCH_SIZE
 from engine_args import get_engine_args
@@ -242,16 +243,33 @@ class OpenAIvLLMEngine(vLLMEngine):
             lora_modules=self.lora_adapters,
         )
         await self.serving_models.init_static_loras()
-        
+
         # Get chat template from vLLM tokenizer if available
         chat_template = None
         if self.tokenizer and hasattr(self.tokenizer, 'tokenizer'):
             chat_template = self.tokenizer.tokenizer.chat_template
-        
+
+        # vLLM 0.19 split chat-template rendering into a separate component that
+        # OpenAIServingChat now requires as a constructor arg.
+        self.serving_render = OpenAIServingRender(
+            model_config=self.llm.model_config,
+            renderer=self.llm.renderer,
+            io_processor=self.llm.io_processor,
+            model_registry=self.serving_models.registry,
+            request_logger=None,
+            chat_template=chat_template,
+            chat_template_content_format="auto",
+            trust_request_chat_template=os.getenv('TRUST_REQUEST_CHAT_TEMPLATE', 'false').lower() == 'true',
+            enable_auto_tools=os.getenv('ENABLE_AUTO_TOOL_CHOICE', 'false').lower() == 'true',
+            exclude_tools_when_tool_choice_none=os.getenv('EXCLUDE_TOOLS_WHEN_TOOL_CHOICE_NONE', 'false').lower() == 'true',
+            tool_parser=os.getenv('TOOL_CALL_PARSER', "") or None,
+        )
+
         self.chat_engine = OpenAIServingChat(
-            engine_client=self.llm, 
+            engine_client=self.llm,
             models=self.serving_models,
             response_role=self.response_role,
+            openai_serving_render=self.serving_render,
             request_logger=None,
             chat_template=chat_template,
             chat_template_content_format="auto",
