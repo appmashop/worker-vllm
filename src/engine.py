@@ -293,8 +293,12 @@ class OpenAIvLLMEngine(vLLMEngine):
             enable_force_include_usage=os.getenv('ENABLE_FORCE_INCLUDE_USAGE', 'false').lower() == 'true',
         )
 
+        # vLLM 0.19's OpenAIServingChat.warmup() is synchronous (returns None);
+        # awaiting it raises "object NoneType can't be used in 'await' expression".
         if hasattr(self.chat_engine, 'warmup'):
-            await self.chat_engine.warmup()
+            warmup_result = self.chat_engine.warmup()
+            if warmup_result is not None and hasattr(warmup_result, '__await__'):
+                await warmup_result
 
     async def generate(self, openai_request: JobInput):
         # Ensure engines are ready (no-op if already initialized at startup)
