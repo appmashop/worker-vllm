@@ -8,10 +8,11 @@ RUN ldconfig /usr/local/cuda-12.9/compat/
 # Install vLLM with FlashInfer + Run:ai Model Streamer (faster weight loading,
 # 23s on S3 / 35s on SSD for 15GB model per NVIDIA benchmarks).
 # vLLM 0.19.0 supports Qwen3.5/3.6 architecture (Qwen3_5ForConditionalGeneration),
-# CUDA 12.9 wheels.
+# CUDA 12.9 wheels. runai-model-streamer is installed separately because the
+# [runai] extras was added in a later vLLM version.
 RUN python3 -m pip install --upgrade pip && \
-    python3 -m pip install "vllm[flashinfer,runai]==0.19.0" --extra-index-url https://download.pytorch.org/whl/cu129 && \
-    python3 -m pip install hf_transfer && \
+    python3 -m pip install "vllm[flashinfer]==0.19.0" --extra-index-url https://download.pytorch.org/whl/cu129 && \
+    python3 -m pip install runai-model-streamer hf_transfer && \
     apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/* && \
     pip install git+https://github.com/huggingface/transformers.git
 
