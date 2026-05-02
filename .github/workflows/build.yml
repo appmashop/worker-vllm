@@ -12,7 +12,27 @@ jobs:
       contents: read
       packages: write
 
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - tag: chat-35b-a3b
+            model: Qwen/Qwen3.6-35B-A3B-FP8
+          - tag: coder-27b
+            model: Qwen/Qwen3.6-27B-FP8
+
     steps:
+      - name: Maximize build disk space
+        uses: easimon/maximize-build-space@master
+        with:
+          root-reserve-mb: 4096
+          swap-size-mb: 1024
+          remove-dotnet: 'true'
+          remove-android: 'true'
+          remove-haskell: 'true'
+          remove-codeql: 'true'
+          remove-docker-images: 'true'
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -30,14 +50,18 @@ jobs:
         id: repo_owner
         run: echo "owner=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
 
-      - name: Build and push Docker image (vLLM nightly)
+      - name: Build and push Docker image (model baked-in)
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
           tags: |
-            ghcr.io/${{ steps.repo_owner.outputs.owner }}/mashop-vllm:latest
-            ghcr.io/${{ steps.repo_owner.outputs.owner }}/mashop-vllm:vllm-0.18-${{ github.sha }}
+            ghcr.io/${{ steps.repo_owner.outputs.owner }}/mashop-vllm:${{ matrix.tag }}
+            ghcr.io/${{ steps.repo_owner.outputs.owner }}/mashop-vllm:${{ matrix.tag }}-${{ github.sha }}
           platforms: linux/amd64
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          build-args: |
+            MODEL_NAME=${{ matrix.model }}
+          secrets: |
+            HF_TOKEN=${{ secrets.HF_TOKEN }}
+          cache-from: type=gha,scope=${{ matrix.tag }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.tag }}

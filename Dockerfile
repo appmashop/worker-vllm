@@ -5,10 +5,13 @@ RUN apt-get update -y \
 
 RUN ldconfig /usr/local/cuda-12.9/compat/
 
-# Install vLLM with FlashInfer - vLLM 0.19.0 supports Qwen3.5/3.6 architecture
-# (Qwen3_5ForConditionalGeneration), CUDA 12.9 wheels
+# Install vLLM with FlashInfer + Run:ai Model Streamer (faster weight loading,
+# 23s on S3 / 35s on SSD for 15GB model per NVIDIA benchmarks).
+# vLLM 0.19.0 supports Qwen3.5/3.6 architecture (Qwen3_5ForConditionalGeneration),
+# CUDA 12.9 wheels.
 RUN python3 -m pip install --upgrade pip && \
-    python3 -m pip install "vllm[flashinfer]==0.19.0" --extra-index-url https://download.pytorch.org/whl/cu129 && \
+    python3 -m pip install "vllm[flashinfer,runai]==0.19.0" --extra-index-url https://download.pytorch.org/whl/cu129 && \
+    python3 -m pip install hf_transfer && \
     apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/* && \
     pip install git+https://github.com/huggingface/transformers.git
 
@@ -38,7 +41,7 @@ ENV PYTHONUNBUFFERED=1 \
     HF_DATASETS_CACHE="${BASE_PATH}/huggingface-cache/datasets" \
     HUGGINGFACE_HUB_CACHE="${BASE_PATH}/huggingface-cache/hub" \
     HF_HOME="${BASE_PATH}/huggingface-cache/hub" \
-    HF_HUB_ENABLE_HF_TRANSFER=0 \
+    HF_HUB_ENABLE_HF_TRANSFER=1 \
     # Suppress Ray metrics agent warnings (not needed in containerized environments)
     RAY_METRICS_EXPORT_ENABLED=0 \
     RAY_DISABLE_USAGE_STATS=1 \
